@@ -1,6 +1,10 @@
-
+#include <cstdint>
 #include <iostream>
-
+#include <memory>
+#include <vector>
+#include <chrono>
+#include <random> 
+#include <algorithm>
 template <typename T>
 class BinarySearchTree
 {
@@ -8,41 +12,341 @@ private:
   BinarySearchTree* parent = nullptr;
   BinarySearchTree* left = nullptr;
   BinarySearchTree* right = nullptr;
+  bool hasElement = false;
   int64_t key;
-public:
-  T data;
-  BinarySearchTree(int64_t key, T data) : key(key), data(data) {
-  }
-  void Insert(BinarySearchTree node) {
-    if (node.key < key)
+  BinarySearchTree& Min(BinarySearchTree& node) const noexcept {
+    BinarySearchTree* min = &node;
+    while (min->left != nullptr)
     {
-      if (node.right == nullptr)
+      min = min->left;
+    }
+    return *min;
+  }
+  void Insert(BinarySearchTree& head, BinarySearchTree* node) noexcept {
+    if (head.key < node->key)
+    {
+      if (head.right == nullptr)
       {
-        node.right = this;
-        parent = &node;
+        head.right = node;
+        node->parent = &head;
       }
       else
       {
-        Insert(*node.right);
+        Insert(*head.right, node);
+      }
+    }
+    else if (head.key > node->key)
+    {
+      if (head.left == nullptr)
+      {
+        head.left = node;
+        node->parent = &head;
+      }
+      else
+      {
+        Insert(*head.left, node);
       }
     }
     else
     {
-      if (node.left == nullptr)
+      head.data = node->data;
+    }
+  }
+public:
+  T data;
+  BinarySearchTree(int64_t key, T& data) : key(key), data(data), hasElement(true) {
+  }
+  BinarySearchTree() = default;
+  ~BinarySearchTree() {
+    delete left;
+    delete right;
+  }
+  void Insert(int64_t key, T data) {
+    if (!hasElement)
+    {
+      this->key = key;
+      this->data = data;
+      hasElement = true;
+    }
+    else {
+      BinarySearchTree* node = new BinarySearchTree(key, data);
+      Insert(*this, node);
+    }
+  }
+  void Remove(BinarySearchTree& node) {
+    uint8_t hasLeftRight = (node.left != nullptr) << 1 |
+      (node.right != nullptr);
+    //0b00 does`nt have left & right
+    //0b01 has right
+    //0b10 has left
+    //0b11 has both
+    if (node.parent == nullptr)
+    {
+      BinarySearchTree<T>* nodeToDelete = nullptr;
+      switch (hasLeftRight)
       {
-        node.left = this;
-        parent = &node;
+      case 0b00:
+        node.data = 0;
+        node.hasElement = false;
+        break;
+
+      case 0b01:
+        nodeToDelete = node.right;
+        node = *node.right;
+        node.parent = nullptr;
+        nodeToDelete->right = nullptr;
+        nodeToDelete->left = nullptr;
+        if (node.left!=nullptr)
+        {
+          node.left->parent = &node;
+        }
+        if (node.right != nullptr)
+        {
+          node.right->parent = &node;
+        }
+        delete nodeToDelete;
+        break;
+      case 0b10:
+        nodeToDelete = node.left;
+        node = *node.left;
+        node.parent = nullptr;
+        nodeToDelete->right = nullptr;
+        nodeToDelete->left = nullptr;
+        if (node.left != nullptr)
+        {
+          node.left->parent = &node;
+        }
+        if (node.right != nullptr)
+        {
+          node.right->parent = &node;
+        }
+        delete nodeToDelete;
+        break;
+      case 0b11:
+      {
+        BinarySearchTree& successor = Min(*node.right);
+        node.data = successor.data;
+        int64_t buf = successor.key;
+        Remove(successor);
+        node.key = buf;
+        break;
+      }
+      default:
+        break;
+      }
+      return;
+    }
+    switch (hasLeftRight)
+    {
+    case 0b00:
+      if (node.parent->left != nullptr && node.parent->left->key == node.key)
+      {
+        node.parent->left = nullptr;
       }
       else
       {
-        Insert(*node.left);
+        node.parent->right = nullptr;
       }
+      break;
+
+    case 0b01:
+      if (node.parent->left != nullptr && node.parent->left->key == node.key)
+      {
+        node.parent->left = node.right;
+      }
+      else
+      {
+        node.parent->right = node.right;
+      }
+      node.right->parent = node.parent;
+      break;
+    case 0b10:
+      if (node.parent->left != nullptr && node.parent->left->key == node.key)
+      {
+        node.parent->left = node.left;
+      }
+      else
+      {
+        node.parent->right = node.left;
+      }
+      node.left->parent = node.parent;
+      break;
+    case 0b11:
+    {
+      BinarySearchTree& successor = Min(*node.right);
+      node.key = successor.key;
+      node.data = successor.data;
+      if (successor.parent->left != nullptr && successor.parent->left->key == successor.key)
+      {
+        successor.parent->left = successor.right;
+      }
+      else
+      {
+        successor.parent->right = successor.right;
+      }
+      if (successor.right != nullptr)
+      {
+        successor.right->parent = successor.parent;
+      }
+      return;
+      break;
+    }
+    default:
+      break;
+    }
+    node.left = nullptr;
+    node.right = nullptr;
+    delete& node;
+  }
+  BinarySearchTree* Find(int64_t key) {
+    BinarySearchTree* ans = this;
+    while (ans != nullptr && key != ans->key)
+    {
+      ans = ans->key < key ? ans->right : ans->left;
+    }
+    if (ans != nullptr)
+    {
+      return ans;
+    }
+    else
+    {
+      throw std::runtime_error("key not exist");
+      return nullptr;
     }
   }
-
 };
 
+std::chrono::duration<double> testInsertTime(int count);
+std::chrono::duration<double> testFindTime(int count);
+std::chrono::duration<double> testRemoveTime(int count);
 int main()
 {
-  std::cout << "Hello World!\n";
+  
+  std::cout << testInsertTime(10).count() << '\n';
+  std::cout << testInsertTime(100).count() << '\n';
+  std::cout << testInsertTime(1000).count() << '\n';
+  std::cout << testInsertTime(10000).count() << '\n';
+  std::cout << testInsertTime(100000).count() << '\n';
+  std::cout << '\n';
+  std::cout << testFindTime(10).count() << '\n';
+  std::cout << testFindTime(100).count() << '\n';
+  std::cout << testFindTime(1000).count() << '\n';
+  std::cout << testFindTime(10000).count() << '\n';
+  std::cout << testFindTime(100000).count() << '\n';
+  std::cout << '\n';
+  std::cout << testRemoveTime(10).count() << '\n';
+  std::cout << testRemoveTime(100).count() << '\n';
+  std::cout << testRemoveTime(1000).count() << '\n';
+  std::cout << testRemoveTime(10000).count() << '\n';
+  std::cout << testRemoveTime(100000).count() << '\n';
+}
+
+std::chrono::duration<double> testInsertTime(int count) {
+  BinarySearchTree<int>* tree;
+  std::vector<int> nums;
+  for (int i = 0; i < count; i++)
+  {
+    nums.push_back(i);
+  }
+  std::random_device rd;
+  std::chrono::duration<double> res(0);
+  auto start{ std::chrono::steady_clock::now() };
+  auto end{ std::chrono::steady_clock::now() };
+  std::chrono::duration<double> elapsed_seconds{ end - start };
+  for (int test_n = 0; test_n < 100; test_n++)
+  {
+    std::shuffle(nums.begin(), nums.end(), rd);
+    tree = new BinarySearchTree<int>();
+    start = std::chrono::steady_clock::now();
+    for (int i = 0; i < count; i++)
+    {
+      tree->Insert(nums[i], nums[i]);
+    }
+    end = std::chrono::steady_clock::now();
+    delete(tree);
+    elapsed_seconds = end - start;
+    res += elapsed_seconds;
+  }
+  
+  res /= 100;
+  return res;
+}
+
+std::chrono::duration<double> testFindTime(int count) {
+  BinarySearchTree<int>* tree;
+  std::vector<int> nums;
+  for (int i = 0; i < count; i++)
+  {
+    nums.push_back(i);
+  }
+  std::random_device rd;
+  std::shuffle(nums.begin(), nums.end(), rd);
+  std::chrono::duration<double> res(0);
+  auto start{ std::chrono::steady_clock::now() };
+  auto end{ std::chrono::steady_clock::now() };
+  std::chrono::duration<double> elapsed_seconds{ end - start };
+  for (int test_n = 0; test_n < 100; test_n++)
+  {
+    std::shuffle(nums.begin(), nums.end(), rd);
+    tree = new BinarySearchTree<int>();
+    for (int i = 0; i < count; i++)
+    {
+      tree->Insert(nums[i], nums[i]);
+    }
+    start = std::chrono::steady_clock::now();
+    for (int i = 0; i < count; i++)
+    {
+      tree->Find(i)->data;
+    }
+    end = std::chrono::steady_clock::now();
+    delete(tree);
+    elapsed_seconds = end - start;
+    res += elapsed_seconds;
+  }
+
+  res /= 100;
+  return res;
+}
+
+std::chrono::duration<double> testRemoveTime(int count) {
+  BinarySearchTree<int>* tree;
+  std::vector<int> nums;
+  for (int i = 0; i < count; i++)
+  {
+    nums.push_back(i);
+  }
+  std::random_device rd;
+  
+  std::chrono::duration<double> res(0);
+  auto start{ std::chrono::steady_clock::now() };
+  auto end{ std::chrono::steady_clock::now() };
+  std::chrono::duration<double> elapsed_seconds{ end - start };
+  BinarySearchTree<int>* found = nullptr;
+  for (int test_n = 0; test_n < 100; test_n++)
+  {
+    std::shuffle(nums.begin(), nums.end(), rd);
+    tree = new BinarySearchTree<int>();
+    for (int i = 0; i < count; i++)
+    {
+      tree->Insert(nums[i], nums[i]);
+    }
+    start = std::chrono::steady_clock::now();
+    for (int i = 0; i < count; i++)
+    {
+      found = tree->Find(i);
+      if (tree!=nullptr)
+      {
+        tree->Remove(*tree->Find(i));
+
+      }
+      
+    }
+    end = std::chrono::steady_clock::now();
+    delete(tree);
+    elapsed_seconds = end - start;
+    res += elapsed_seconds;
+  }
+
+  res /= 100;
+  return res;
 }
