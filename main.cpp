@@ -5,6 +5,7 @@
 #include <chrono>
 #include <random> 
 #include <algorithm>
+
 template <typename T>
 class BinarySearchTree
 {
@@ -221,24 +222,37 @@ std::chrono::duration<double> testFindTime(int count);
 std::chrono::duration<double> testRemoveTime(int count);
 int main()
 {
-  
-  std::cout << testInsertTime(10).count() << '\n';
-  std::cout << testInsertTime(100).count() << '\n';
-  std::cout << testInsertTime(1000).count() << '\n';
-  std::cout << testInsertTime(10000).count() << '\n';
-  std::cout << testInsertTime(100000).count() << '\n';
+  int start = 100;
+  int step = 1000;
+  int stop = 100000;
+  std::cout << '[';
+  for (size_t i = start; i < stop; i+=step)
+  {
+    std::cout << testInsertTime(i).count() << ", ";
+  }
+  std::cout << testInsertTime(stop).count() << ']';
   std::cout << '\n';
-  std::cout << testFindTime(10).count() << '\n';
-  std::cout << testFindTime(100).count() << '\n';
-  std::cout << testFindTime(1000).count() << '\n';
-  std::cout << testFindTime(10000).count() << '\n';
-  std::cout << testFindTime(100000).count() << '\n';
+  std::cout << '[';
+  for (size_t i = start; i < stop; i += step)
+  {
+    std::cout << testFindTime(i).count() << ", ";
+  }
+  std::cout << testFindTime(stop).count() << ']';
   std::cout << '\n';
-  std::cout << testRemoveTime(10).count() << '\n';
-  std::cout << testRemoveTime(100).count() << '\n';
-  std::cout << testRemoveTime(1000).count() << '\n';
-  std::cout << testRemoveTime(10000).count() << '\n';
-  std::cout << testRemoveTime(100000).count() << '\n';
+  std::cout << '[';
+  for (size_t i = start; i < stop; i += step)
+  {
+    std::cout << testRemoveTime(i).count() << ", ";
+  }
+  std::cout << testRemoveTime(stop).count() << ']';
+  std::cout << '\n';
+  std::cout << '[';
+  for (size_t i = start; i < stop; i += step)
+  {
+    std::cout << i << ", ";
+  }
+  std::cout << stop << ']';
+  std::cout << '\n';
 }
 
 std::chrono::duration<double> testInsertTime(int count) {
@@ -268,7 +282,7 @@ std::chrono::duration<double> testInsertTime(int count) {
     res += elapsed_seconds;
   }
   
-  res /= 100;
+  res /= 100 * count;
   return res;
 }
 
@@ -304,7 +318,7 @@ std::chrono::duration<double> testFindTime(int count) {
     res += elapsed_seconds;
   }
 
-  res /= 100;
+  res /= 100*count;
   return res;
 }
 
@@ -347,6 +361,6 @@ std::chrono::duration<double> testRemoveTime(int count) {
     res += elapsed_seconds;
   }
 
-  res /= 100;
+  res /= 100 * count;
   return res;
 }
